@@ -15,62 +15,45 @@ function App(): React.JSX.Element {
   // ----- Events -----
 
   GameModule.registerCallback((event) => {
-    switch (event.type) {
-      case "gameStart":
+      if (event.type === "gameStart") {
         setReversedValue(reversedValue + event.type);
-        break;
-    
-      case "playerTurn":
+      }
+      if (event.type === "playerTurn") {
         setReversedValue(reversedValue + "\n" + event.type + ": " + event.playerId);
-        break;
-    
-      case "diceRolled":
+      }
+      if (event.type === "diceRolled") {
         setReversedValue(reversedValue + "\n" + event.type + ": " + event.value);
-        break;
-    
-      case "gameOver":
+      }
+      if (event.type === "gameOver") {
         setReversedValue(reversedValue + "\n" + event.type);
-        break;
-    
-      case "pawnKilled":
+      }
+      if (event.type === "pawnKilled") {
         setReversedValue(reversedValue + "\n" + event.type + ": killer " + event.killerId);
-        break;
-    
-      case "pawnMoved":
+      }
+      if (event.type === "pawnMoved") {
         setReversedValue(reversedValue + "\n" + event.type + ": from " + event.fromPosition + " to " + event.toPosition);
-        break;
-    
-      case "pawnMovedToGoalArea":
+      }
+      if (event.type === "pawnMovedToGoalArea") {
         setReversedValue(reversedValue + "\n" + event.type + ": to " + event.position);
-        break;
-    
-      case "pawnRevived":
+      }
+      if (event.type === "pawnRevived") {
         setReversedValue(reversedValue + "\n" + event.type + ": pawn is at " + event.position);
-        break;
-    
-      case "pawnSaved":
+      }
+      if (event.type === "pawnSaved") {
         setReversedValue(reversedValue + "\n" + event.type);
-        break;
-    
-      case "playerSkipped":
+      }
+      if (event.type === "playerSkipped") {
         setReversedValue(reversedValue + "\n" + event.type);
-        break;
-    
-      case "selected":
+      }
+      if (event.type === "selected") {
         setReversedValue(reversedValue + "\n" + event.type + ": " + event.pawnId);
-        break;
-    
-      case "waitingForSelect":
+      }
+      if (event.type === "waitingForSelect") {
         setReversedValue(reversedValue + "\n" + event.type);
-        break;
-    
-      case "waitingForDice":
+      }
+      if (event.type === "waitingForDice") {
         setReversedValue(reversedValue + "\n" + event.type);
-        break;
-    
-      default:
-        break;
-    }
+      }
   });
 
   // ------------------
@@ -86,14 +69,14 @@ function App(): React.JSX.Element {
   };
 
   return (
-      <View style={{backgroundColor: 'blue'}}>
+      <View>
         <Text style={styles.title}>
           Welcome to C++ Turbo Native Module Example
         </Text>
         <Button title="Connect" onPress={onConnect} />
         <Button title="Dice" onPress={onDice} />
         <Button title="Select 1" onPress={onSelect} />
-        <Text>text: {reversedValue}</Text>
+        <Text style={styles.text}>text: {reversedValue}</Text>
       </View>
   );
 }
@@ -107,6 +90,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     marginBottom: 20,
+  },
+  text: {
+    color: 'white',
   },
   textInput: {
     borderColor: 'black',

@@ -4,16 +4,31 @@
 #include <ReactCommon/CallInvoker.h>
 
 #include <memory>
+#include <queue>
+#include <mutex>
 #include <functional>
 
 namespace facebook::react {
 
+using Value = std::variant<int, double, bool, std::string>;
+struct Event {
+  std::string type;
+  std::unordered_map<std::string, Value> properties;
+};
+
 class NativeGameModule : public NativeGameModuleCxxSpec<NativeGameModule> {
   std::shared_ptr<jsi::Function> callback_;
+  std::queue<Event> eventQueue_;
+  std::mutex queueMutex_;
+  std::atomic<bool> flushScheduled_{false};
 public:
   NativeGameModule(std::shared_ptr<CallInvoker> jsInvoker);
 
+  // Event Handling
   void registerCallback(jsi::Runtime& rt, jsi::Function callback);
+  void enqueueEvent(Event event);
+  void scheduleFlush();
+  void flushEvents(jsi::Runtime& rt);
 
   // Methods
   void connect(jsi::Runtime& rt);
