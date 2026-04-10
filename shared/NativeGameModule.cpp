@@ -22,7 +22,11 @@ jsi::Value toJSIValue(jsi::Runtime& rt, const Value& v) {
   if (std::holds_alternative<bool>(v))
     return jsi::Value(std::get<bool>(v));
 
-  return jsi::String::createFromUtf8(rt, std::get<std::string>(v));
+  if (std::holds_alternative<std::string>(v))
+    return jsi::String::createFromUtf8(rt, std::get<std::string>(v));
+
+  // fallback
+  return jsi::Value::undefined();
 }
 
 jsi::Object toJSI(jsi::Runtime& rt, const Event& event) {
@@ -30,9 +34,9 @@ jsi::Object toJSI(jsi::Runtime& rt, const Event& event) {
 
   obj.setProperty(rt, "type", jsi::String::createFromUtf8(rt, event.type));
   for (const auto& [key, value] : event.properties) {
-    obj.setProperty(rt, key.c_str(), toJSIValue(rt, value));
+    obj.setProperty(rt, jsi::String::createFromUtf8(rt, key), toJSIValue(rt, value));
   }
-
+  
   return obj;
 }
 
@@ -65,11 +69,16 @@ void NativeGameModule::flushEvents(jsi::Runtime& rt) {
     std::swap(localQueue, eventQueue_);
   }
 
+  size_t size = localQueue.size();
+  jsi::Array events(rt, size);
+
+  size_t i = 0;
   while (!localQueue.empty()) {
-    const auto& event = localQueue.front();
+    auto event = std::move(localQueue.front());
     localQueue.pop();
-    callback_->call(rt, toJSI(rt, event));
+    events.setValueAtIndex(rt, i++, toJSI(rt, event));
   }
+  callback_->call(rt, events);
 
   flushScheduled_ = false;
 
@@ -85,14 +94,6 @@ void NativeGameModule::flushEvents(jsi::Runtime& rt) {
 // ---- Methods ----
 
 void NativeGameModule::connect(jsi::Runtime& rt) {
-  jsInvoker_->invokeAsync([cb = callback_](jsi::Runtime& rt) {
-    auto console = rt.global().getPropertyAsObject(rt, "console");
-    auto log = console.getPropertyAsFunction(rt, "log");
-
-    log.call(rt, "1");
-    log.call(rt, "2");
-    log.call(rt, "3");
-  });
   emitGameStart(rt);
   emitPlayerTurn(rt, 1);
   emitWaitingForDice(rt);

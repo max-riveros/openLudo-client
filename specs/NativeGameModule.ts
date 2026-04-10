@@ -16,7 +16,7 @@ export type GameEvent =
 	| { type: "gameOver"; winnerId: number }
 
 export interface Spec extends TurboModule {
-  registerCallback(callback: (event: GameEvent) => void): void;
+  registerCallback(callback: (event: Array<GameEvent>) => void): void;
 
   readonly connect: () => void;
   readonly rollDice: () => void;

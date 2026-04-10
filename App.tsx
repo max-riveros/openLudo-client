@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import GameModule from './specs/NativeGameModule';
+import GameModule, { GameEvent } from './specs/NativeGameModule';
 
 function App(): React.JSX.Element {
   console.log(Platform.OS);
@@ -14,47 +14,61 @@ function App(): React.JSX.Element {
 
   // ----- Events -----
 
-  GameModule.registerCallback((event) => {
-      if (event.type === "gameStart") {
-        setReversedValue(reversedValue + event.type);
-      }
-      if (event.type === "playerTurn") {
-        setReversedValue(reversedValue + "\n" + event.type + ": " + event.playerId);
-      }
-      if (event.type === "diceRolled") {
-        setReversedValue(reversedValue + "\n" + event.type + ": " + event.value);
-      }
-      if (event.type === "gameOver") {
-        setReversedValue(reversedValue + "\n" + event.type);
-      }
-      if (event.type === "pawnKilled") {
-        setReversedValue(reversedValue + "\n" + event.type + ": killer " + event.killerId);
-      }
-      if (event.type === "pawnMoved") {
-        setReversedValue(reversedValue + "\n" + event.type + ": from " + event.fromPosition + " to " + event.toPosition);
-      }
-      if (event.type === "pawnMovedToGoalArea") {
-        setReversedValue(reversedValue + "\n" + event.type + ": to " + event.position);
-      }
-      if (event.type === "pawnRevived") {
-        setReversedValue(reversedValue + "\n" + event.type + ": pawn is at " + event.position);
-      }
-      if (event.type === "pawnSaved") {
-        setReversedValue(reversedValue + "\n" + event.type);
-      }
-      if (event.type === "playerSkipped") {
-        setReversedValue(reversedValue + "\n" + event.type);
-      }
-      if (event.type === "selected") {
-        setReversedValue(reversedValue + "\n" + event.type + ": " + event.pawnId);
-      }
-      if (event.type === "waitingForSelect") {
-        setReversedValue(reversedValue + "\n" + event.type);
-      }
-      if (event.type === "waitingForDice") {
-        setReversedValue(reversedValue + "\n" + event.type);
-      }
+  GameModule.registerCallback(async (events: Array<GameEvent>) => {
+    console.log("Handling " + events.length + " events...");
+    events.forEach((event: GameEvent) => {
+      handleEvent(event);
+    });
   });
+
+  function handleEvent(event: GameEvent) {
+    console.log("Event type " + event.type);
+    switch (event.type) {
+      case "gameStart":
+        addText(event.type);
+        break;
+      case "playerTurn":
+        addText(event.type + ": " + event.playerId);
+        break;
+      case "diceRolled":
+        addText(event.type + ": " + event.value);
+        break;
+      case "gameOver":
+        addText(event.type);
+        break;
+      case "pawnKilled":
+        addText(event.type + ": killer " + event.killerId);
+        break;
+      case "pawnMoved":
+        addText(event.type + ": from " + event.fromPosition + " to " + event.toPosition);
+        break;
+      case "pawnMovedToGoalArea":
+        addText(event.type + ": to " + event.position);
+        break;
+      case "pawnRevived":
+        addText(event.type + ": pawn is at " + event.position);
+        break;
+      case "pawnSaved":
+        addText(event.type);
+        break;
+      case "playerSkipped":
+        addText(event.type);
+        break;
+      case "selected":
+        addText(event.type + ": " + event.pawnId);
+        break;
+      case "waitingForSelect":
+        addText(event.type);
+        break;
+      case "waitingForDice":
+        addText(event.type);
+        break;
+    }    
+  } 
+
+  const addText = (text: String) => {
+    setReversedValue(prev => prev + "\n" + text);
+  }
 
   // ------------------
 
