@@ -94,6 +94,11 @@ void NativeGameModule::flushEvents(jsi::Runtime& rt) {
 // ---- Methods ----
 
 void NativeGameModule::connect(jsi::Runtime& rt) {
+  LudoClient* client = LudoClient::get();
+  if (!client) return;
+  client->connectToServer(rt);
+  client->sendMessage(rt);
+  client->closeConn(rt);
   emitGameStart(rt);
   emitPlayerTurn(rt, 1);
   emitWaitingForDice(rt);

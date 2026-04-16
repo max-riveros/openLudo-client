@@ -8,13 +8,13 @@ import {
   View,
 } from 'react-native';
 import GameModule, { GameEvent } from '../specs/NativeGameModule';
+import LoggerModule from '../specs/NativeLoggerModule';
 import { handle } from './features/events/GameEventHandler';
 import { eventListener } from './features/events/EventListener';
 import * as Events from './features/events/Events';
 import { Board, BoardHandle } from './components/game/Board';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { PawnController } from './features/game/PawnController';
-import { Color } from './components/game/Pawn';
 
 function App(): React.JSX.Element {
   const [reversedValue, setReversedValue] = React.useState('');
@@ -26,6 +26,9 @@ function App(): React.JSX.Element {
     events.forEach((event: GameEvent) => {
       handle(event);
     });
+  });
+  LoggerModule.registerLog(async (message: string) => {
+    console.log("App: " + message);
   });
 
   const addText = (text: String) => {

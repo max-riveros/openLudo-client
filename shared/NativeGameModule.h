@@ -3,6 +3,8 @@
 #include <ClientSpecsJSI.h>
 #include <ReactCommon/CallInvoker.h>
 
+#include "LudoClient.h"
+
 #include <memory>
 #include <queue>
 #include <mutex>
@@ -21,6 +23,7 @@ class NativeGameModule : public NativeGameModuleCxxSpec<NativeGameModule> {
   std::queue<Event> eventQueue_;
   std::mutex queueMutex_;
   std::atomic<bool> flushScheduled_{false};
+
 public:
   NativeGameModule(std::shared_ptr<CallInvoker> jsInvoker);
 

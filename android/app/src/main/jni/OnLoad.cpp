@@ -35,6 +35,7 @@
 #include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
 
 #include <NativeGameModule.h>
+#include <NativeLoggerModule.h>
 
 #ifdef REACT_NATIVE_APP_CODEGEN_HEADER
 #include REACT_NATIVE_APP_CODEGEN_HEADER
@@ -73,9 +74,20 @@ std::shared_ptr<TurboModule> cxxModuleProvider(
   //   return std::make_shared<NativeCxxModuleExample>(jsInvoker);
   // }
 
+
+
+// ------- Modules --------
+
   if (name == NativeGameModule::kModuleName) {
     return std::make_shared<NativeGameModule>(jsInvoker);
   }
+  if (name == NativeLoggerModule::kModuleName) {
+    return std::make_shared<NativeLoggerModule>(jsInvoker);
+  }
+
+// ------------------------
+
+
 
   // And we fallback to the CXX module providers autolinked
   return autolinking_cxxModuleProvider(name, jsInvoker);
