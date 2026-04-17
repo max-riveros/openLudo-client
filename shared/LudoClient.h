@@ -30,6 +30,7 @@ public:
     static void create(NativeLoggerModule* logger);
     static LudoClient* get();
 
+    void listenToServer(jsi::Runtime& rt);
     void connectToServer(jsi::Runtime& rt);
     void registerSelf(jsi::Runtime& rt);
     void rollDice(jsi::Runtime& rt);
