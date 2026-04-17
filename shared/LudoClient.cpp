@@ -26,11 +26,11 @@ void LudoClient::sendMessage(jsi::Runtime& rt, std::string message) {
 void LudoClient::listenToServer(jsi::Runtime& rt) {
     char buffer[1024];
     while (serverSocket != -1) {
-        ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
+        ssize_t bytes = recv(serverSocket, buffer, sizeof(buffer) - 1, 0);
 
         if (bytes > 0) {
             buffer[bytes] = '\0';
-            logger->log(rt, "Message from Server: " + buffer);
+            logger->log(rt, "Message from Server: " + std::string(buffer));
         } else if (bytes == 0) {
             logger->log(rt, "Server disconnected.");
             break;
@@ -52,7 +52,7 @@ void LudoClient::connectToServer(jsi::Runtime& rt) {
     logger->log(rt, "Connected with socket " + std::to_string(serverSocket));
 
     std::thread thread = std::thread(&LudoClient::listenToServer, this, std::ref(rt));
-    thread.detatch();
+    thread.detach();
 }
 
 void LudoClient::registerSelf(jsi::Runtime& rt) {
