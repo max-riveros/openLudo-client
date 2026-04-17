@@ -97,20 +97,31 @@ void NativeGameModule::connect(jsi::Runtime& rt) {
   LudoClient* client = LudoClient::get();
   if (!client) return;
   client->connectToServer(rt);
-  client->sendMessage(rt);
-  client->closeConn(rt);
-  emitGameStart(rt);
-  emitPlayerTurn(rt, 1);
-  emitWaitingForDice(rt);
+  client->registerSelf(rt);
 }
 
 void NativeGameModule::rollDice(jsi::Runtime& rt) {
-  emitDiceRolled(rt, 3);
-  emitWaitingForSelect(rt);
+  LudoClient* client = LudoClient::get();
+  if (!client) return;
+  client->rollDice(rt);
 }
 
 void NativeGameModule::selectPawn(jsi::Runtime& rt, int pawnId) {
-  emitSelected(rt, pawnId);
+  LudoClient* client = LudoClient::get();
+  if (!client) return;
+  client->selectPawn(rt, pawnId);
+}
+
+void NativeGameModule::quit(jsi::Runtime& rt) {
+  LudoClient* client = LudoClient::get();
+  if (!client) return;
+  client->quit(rt);
+}
+
+void NativeGameModule::disconnect(jsi::Runtime& rt) {
+  LudoClient* client = LudoClient::get();
+  if (!client) return;
+  client->closeConn(rt);
 }
 
 // ---- Events ----

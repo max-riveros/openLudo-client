@@ -14,6 +14,13 @@ LudoClient* LudoClient::get() {
     return instance;
 }
 
+void LudoClient::sendMessage(jsi::Runtime& rt, std::string message) {
+    if (serverSocket < 0) return;
+
+    if (token.length() != 0) message = message + ";token=" + token;
+    send(clientSocket, message.c_str(), message.length(), 0);
+}
+
 void LudoClient::connectToServer(jsi::Runtime& rt) {
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in serverAddress{};
@@ -25,13 +32,30 @@ void LudoClient::connectToServer(jsi::Runtime& rt) {
     logger->log(rt, "Connected with socket " + std::to_string(serverSocket));
 }
 
-void LudoClient::sendMessage(jsi::Runtime& rt) {
-    const char* message = "Hello, server!";
-    send(clientSocket, message, strlen(message), 0);
+void LudoClient::registerSelf(jsi::Runtime& rt) {
+    sendMessage(rt, "cmd=register");
+    token = "00000";
+}
+
+void LudoClient::selectPawn(jsi::Runtime& rt, int pawn) {
+    sendMessage(rt, "cmd=selectPawn;pawn="+std::to_string(pawn));
+}
+
+void LudoClient::rollDice(jsi::Runtime& rt) {
+    sendMessage(rt, "cmd=rollDice");
+}
+
+void LudoClient::quit(jsi::Runtime& rt) {
+    sendMessage(rt, "cmd=quit");
+    closeConn(rt);
+    delete this;
 }
 
 void LudoClient::closeConn(jsi::Runtime& rt) {
     close(clientSocket);
+    serverSocket = -1;
+    clientSocket = -1;
+    token = "";
 }
 
 }

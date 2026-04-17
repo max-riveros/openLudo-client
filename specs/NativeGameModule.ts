@@ -19,6 +19,8 @@ export interface Spec extends TurboModule {
   registerCallback(callback: (event: Array<GameEvent>) => void): void;
 
   readonly connect: () => void;
+  readonly disconnect: () => void;
+  readonly quit: () => void;
   readonly rollDice: () => void;
   readonly selectPawn: (pawnId: number) => void;
 }

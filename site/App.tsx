@@ -94,6 +94,20 @@ function App(): React.JSX.Element {
   };
 
 
+  const onDisconnect = () => {
+    if (!connected) return;
+
+    setConnected(false);
+    GameModule.disconnect();
+  }
+
+  const onQuit = () => {
+    if (!connected) return;
+
+    setConnected(false);
+    GameModule.quit();
+  }
+
   const onConnect = () => {
     if ( connected ) return;
 
@@ -113,6 +127,7 @@ function App(): React.JSX.Element {
     eventListener.subscribe(Events.GameOverEvent, onGameOver);
     GameModule.connect();
 
+    /**
     if (pawnController == null) return;
     pawnController?.addPawn({id: 1, color: "red"})
     pawnController?.addPawn({id: 2, color: "red"})
@@ -130,6 +145,7 @@ function App(): React.JSX.Element {
     pawnController?.addPawn({id: 14, color: "green"})
     pawnController?.addPawn({id: 15, color: "green"})
     pawnController?.addPawn({id: 16, color: "green"})
+    **/
   };
   const rollDice = () => {
     GameModule.rollDice();
@@ -154,17 +170,12 @@ function App(): React.JSX.Element {
         </Text>
         <Board ref={(ref) => onGetRef(ref)} >
         </Board>
-        <View style={styles.buttons}>
-          <Button title='Kill' onPress={() => {pawnController?.getPawn(pawnId)?.kill(); }} color="#FF4422"/>
-          <Button title='Revive' onPress={() => {pawnController?.getPawn(pawnId)?.revive(); }} color="#FF4422"/>
-          <Button title='Move to start' onPress={() => {pawnController?.getPawn(pawnId)?.moveToStart(); }} color="#FF4422"/>
-          <Button title='Move to goal' onPress={() => {pawnController?.getPawn(pawnId)?.moveToGoalArea(5); }} color="#FF4422"/>
-          <Button title='Move 3' onPress={() => {pawnController?.getPawn(pawnId)?.move(3); }} color="#FF4422"/>
-        </View>
         <Button title="Connect" onPress={onConnect} />
         <Button title="Dice" onPress={rollDice} />
         <Text style={styles.title}>Pawn: <TextInput style={styles.text} onChangeText={updateId}></TextInput></Text>
         <Button title="Select 1" onPress={select} />
+        <Button title="Quit" onPress={onQuit} />
+        <Button title="Disconnect" onPress={onDisconnect} />
         <ScrollView style={styles.scrollView}>
           <Text style={styles.text}>text: {reversedValue}</Text>
         </ScrollView>

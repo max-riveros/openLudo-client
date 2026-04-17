@@ -37,6 +37,8 @@ public:
   void connect(jsi::Runtime& rt);
   void rollDice(jsi::Runtime& rt);
   void selectPawn(jsi::Runtime& rt, int pawnId);
+  void disconnect(jsi::Runtime& rt);
+  void quit(jsi::Runtime& rt);
 
   // Events
   void emitGameStart(jsi::Runtime& rt);
