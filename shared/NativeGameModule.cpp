@@ -96,7 +96,7 @@ void NativeGameModule::flushEvents(jsi::Runtime& rt) {
 void NativeGameModule::connect(jsi::Runtime& rt) {
   LudoClient* client = LudoClient::get();
   if (!client) return;
-  client->connectToServer(rt);
+  client->connectToServer(rt, jsInvoker_);
   client->registerSelf(rt);
 }
 

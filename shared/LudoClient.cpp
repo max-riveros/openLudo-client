@@ -23,35 +23,42 @@ void LudoClient::sendMessage(jsi::Runtime& rt, std::string message) {
     send(clientSocket, message.c_str(), message.length(), 0);
 }
 
-void LudoClient::listenToServer(jsi::Runtime& rt) {
+void LudoClient::listenToServer(std::shared_ptr<CallInvoker> jsInvoker) {
     char buffer[1024];
-    while (serverSocket != -1) {
-        ssize_t bytes = recv(serverSocket, buffer, sizeof(buffer) - 1, 0);
+    ssize_t bytes = 1;
+    while (clientSocket != -1 && bytes > 0) {
+        bytes = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 
+        std::string message;
         if (bytes > 0) {
             buffer[bytes] = '\0';
-            logger->log(rt, "Message from Server: " + std::string(buffer));
+            message = "Message from Server: " + std::string(buffer);
         } else if (bytes == 0) {
-            logger->log(rt, "Server disconnected.");
-            break;
+            message = "Server disconnected.";
         } else {
-            logger->log(rt, "There was an error trying to communicate with the server.");
-            break;
+            message = "There was an error trying to communicate with the server: " + std::to_string(errno);
         }
+        jsInvoker->invokeAsync([this, message](jsi::Runtime& rt) {
+            logger->log(rt, message);
+        });
     }
 }
 
-void LudoClient::connectToServer(jsi::Runtime& rt) {
+void LudoClient::connectToServer(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in serverAddress{};
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(DEFAULT_PORT);
     inet_pton(AF_INET, "192.168.0.49", &serverAddress.sin_addr);
-    serverSocket = connect(clientSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
+    if (connect(clientSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        logger->log(rt, "Failed to connect to Server!");
+        clientSocket = -1;
+        return;
+    }
     logger->log(rt, "Address " + std::to_string(serverAddress.sin_addr.s_addr));
     logger->log(rt, "Connected with socket " + std::to_string(serverSocket));
 
-    std::thread thread = std::thread(&LudoClient::listenToServer, this, std::ref(rt));
+    std::thread thread = std::thread(&LudoClient::listenToServer, this, jsInvoker);
     thread.detach();
 }
 

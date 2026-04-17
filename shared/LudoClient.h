@@ -22,6 +22,7 @@ private:
         this->logger = logger;
     }
     void sendMessage(jsi::Runtime& rt, std::string message);
+    void listenToServer(std::shared_ptr<CallInvoker> jsInvoker);
 public:
     static constexpr in_port_t DEFAULT_PORT = 1221;
 
@@ -30,8 +31,7 @@ public:
     static void create(NativeLoggerModule* logger);
     static LudoClient* get();
 
-    void listenToServer(jsi::Runtime& rt);
-    void connectToServer(jsi::Runtime& rt);
+    void connectToServer(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
     void registerSelf(jsi::Runtime& rt);
     void rollDice(jsi::Runtime& rt);
     void selectPawn(jsi::Runtime& rt, int pawn);
