@@ -14,9 +14,12 @@ class LudoClient {
 private:
     static LudoClient* instance;
     NativeLoggerModule* logger;
-    std::string token = "";
     int clientSocket = -1;
-    int serverSocket = -1;
+    std::string token = "";
+    std::string playerId = "";
+    std::string currentPlayer = "";
+    std::string currentPawn = "";
+    std::string color = "";
 
     LudoClient(NativeLoggerModule* logger) {
         this->logger = logger;
@@ -33,6 +36,7 @@ public:
 
     void connectToServer(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
     void registerSelf(jsi::Runtime& rt);
+    void startGame(jsi::Runtime& rt);
     void rollDice(jsi::Runtime& rt);
     void selectPawn(jsi::Runtime& rt, int pawn);
     void quit(jsi::Runtime& rt);
