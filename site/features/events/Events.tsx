@@ -6,7 +6,7 @@ export class GameStartEvent implements Event {
 }
 export class PlayerTurnEvent implements Event {
     readonly type = "playerTurn";
-    constructor(public readonly playerId: number) {}
+    constructor(public readonly playerId: string) {}
 }
 export class WaitingForDiceEvent implements Event {
     readonly type = "waitingForDice";
@@ -30,25 +30,39 @@ export class PlayerSkippedEvent implements Event {
 export class PawnKilledEvent implements Event {
   readonly type = "pawnKilled";
 
-  constructor(public readonly killerId: number) {}
+  constructor(
+    public readonly killerId: number,
+    public readonly killedId: number
+  ) {}
 }
 export class PawnRevivedEvent implements Event {
   readonly type = "pawnRevived";
 
-  constructor(public readonly position: number) {}
+  constructor(
+    public readonly pawn: number,
+    public readonly position: number
+  ) {}
 }
 export class PawnSavedEvent implements Event {
   readonly type = "pawnSaved";
+
+  constructor(
+    public readonly pawn: number,
+  ) {}
 }
 export class PawnMovedToGoalAreaEvent implements Event {
   readonly type = "pawnMovedToGoalArea";
 
-  constructor(public readonly position: number) {}
+  constructor(
+    public readonly pawn: number,
+    public readonly position: number
+  ) {}
 }
 export class PawnMovedEvent implements Event {
   readonly type = "pawnMoved";
 
   constructor(
+    public readonly pawn: number,
     public readonly fromPosition: number,
     public readonly toPosition: number
   ) {}
@@ -56,5 +70,5 @@ export class PawnMovedEvent implements Event {
 export class GameOverEvent implements Event {
   readonly type = "gameOver";
 
-  constructor(public readonly winnerId: number) {}
+  constructor(public readonly winner: string) {}
 }

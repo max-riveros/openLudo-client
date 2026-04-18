@@ -81,9 +81,6 @@ std::shared_ptr<TurboModule> cxxModuleProvider(
   if (name == NativeGameModule::kModuleName) {
     return std::make_shared<NativeGameModule>(jsInvoker);
   }
-  if (name == NativeLoggerModule::kModuleName) {
-    return std::make_shared<NativeLoggerModule>(jsInvoker);
-  }
 
 // ------------------------
 

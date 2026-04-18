@@ -6,10 +6,179 @@ namespace facebook::react {
 NativeGameModule::NativeGameModule(std::shared_ptr<CallInvoker> jsInvoker) 
     : NativeGameModuleCxxSpec(std::move(jsInvoker)) {}
 
+
+// -------- Util ----------
+
+std::vector<std::string> parseRecv(const std::string& input) {
+    std::vector<std::string> lines;
+
+    std::stringstream ss(input);
+    std::string line;
+
+    while (std::getline(ss, line, '\n')) {
+        lines.push_back(line);
+    }
+
+    return lines;
+}
+
+std::map<std::string, std::string> parseLine(const std::string& input) {
+    std::map<std::string, std::string> result;
+
+    std::stringstream ss(input);
+    std::string pair;
+
+    while (std::getline(ss, pair, ';')) {
+        auto pos = pair.find('=');
+        if (pos != std::string::npos) {
+            result[pair.substr(0, pos)] = pair.substr(pos + 1);
+        }
+    }
+
+    return result;
+}
+
+void handleLine(jsi::Runtime& rt, const std::string& line) {
+        // TODO: send info to js
+    auto map = parseLine(line);
+    if (!map.contains("event")) return;
+    std::string event = map["event"];
+    if (event == "registered") {
+        token = map["token"];
+        playerId = map["playerId"];
+        color = map["color"];
+    }
+    if (event == "playerSetup") {
+        // keys: id, color, startPosition, endPosition, pawns (delim ',')
+        return;
+    }
+    if (event == "gameStart") {
+        // keys: playerCount
+        emitGameStart(rt);
+        return;
+    }
+    if (event == "playerTurn") {
+        emitPlayerTurn(rt, map["player"]);
+        return;
+    }
+    if (event == "waitingForDice") {
+        emitWaitingForDice(rt);
+        return;
+    }
+    if (event == "diceRolled") {
+        int val = std::stoi(map["value"]);
+        emitDiceRolled(rt, val);
+        return;
+    }
+    if (event == "waitingForSelect") {
+        emitWaitingForSelect(rt);
+        return;
+    }
+    if (event == "selected") {
+        int pawn = std::stoi(map["pawn"]);
+        emitSelected(rt, pawn);
+        return;
+    }
+    if (event == "playerSkipped") {
+        emitPlayerSkipped(rt);
+        return;
+    }
+    if (event == "pawnKilled") {
+        int killer = std::stoi(map["killer"]);
+        int killed = std::stoi(map["killed"]);
+        emitPawnKilled(rt, killer, killed)
+        return;
+    }
+    if (event == "pawnRevived") {
+        int pawn = std::stoi(map["pawn"]);
+        emitPawnRevived(rt);
+        return;
+    }
+    if (event == "pawnSaved") {
+        int pawn = std::stoi(map["pawn"]);
+        emitPawnSaved(rt);
+        return;
+    }
+    if (event == "pawnMovedToGoalArea") {
+        int pawn = std::stoi(map["pawn"]);
+        int position = std::stoi(map["position"]);
+        emitPawnMovedToGoalArea(rt, position);
+        return;
+    }
+    if (event == "pawnMoved") {
+        int pawn = std::stoi(map["pawn"]);
+        int from = std::stoi(map["from"]);
+        int to = std::stoi(map["to"]);
+        emitPawnMoved(rt, from, to);
+        return;
+    }
+    if (event == "gameOver") {
+        emitGameOver(rt, map["player"]);
+        return;
+    }
+}
+
+
+// ------ Networking ------
+
+void NativeGameModule::sendMessage(jsi::Runtime& rt, std::string message) {
+    if (clientSocket < 0) return;
+
+    if (token.length() != 0) message = message + ";token=" + token;
+    send(clientSocket, message.c_str(), message.length(), 0);
+}
+
+void NativeGameModule::listenToServer() {
+    char buffer[1024];
+    ssize_t bytes = 1;
+    while (clientSocket != -1 && bytes > 0) {
+        bytes = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+
+        std::string message;
+        if (bytes > 0) {
+            buffer[bytes] = '\0';
+            message = "";
+            for (const std::string& line : parseRecv(std::string(buffer))) {
+                message += "Message from Server: " + line + "\n";
+                handleLine(line);
+            }
+        } else if (bytes == 0) {
+            message = "Server disconnected.";
+        } else {
+            message = "There was an error trying to communicate with the server: " + std::to_string(errno);
+        }
+        jsInvoker_->invokeAsync([this, message](jsi::Runtime& rt) {
+            logger->log(rt, message);
+        });
+    }
+}
+
+void NativeGameModule::connectToServer(jsi::Runtime& rt) {
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    sockaddr_in serverAddress{};
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(DEFAULT_PORT);
+    inet_pton(AF_INET, "192.168.0.49", &serverAddress.sin_addr);
+    if (connect(clientSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        log(rt, "Failed to connect to Server!");
+        clientSocket = -1;
+        return;
+    }
+    log(rt, "Address " + std::to_string(serverAddress.sin_addr.s_addr));
+    log(rt, "Connected with socket " + std::to_string(clientSocket));
+
+    std::thread thread = std::thread(&NativeGameModule::listenToServer, this);
+    thread.detach();
+}
+
+
 // ---- Event Handling ----
 
 void NativeGameModule::registerCallback(jsi::Runtime& rt, jsi::Function callback) {
-  callback_ = std::make_shared<jsi::Function>(std::move(callback));
+    callback_ = std::make_shared<jsi::Function>(std::move(callback));
+}
+void NativeGameModule::registerLog(jsi::Runtime& rt, jsi::Function callback) {
+    logCallback_ = std::make_shared<jsi::Function>(std::move(callback));
 }
 
 jsi::Value toJSIValue(jsi::Runtime& rt, const Value& v) {
@@ -91,37 +260,42 @@ void NativeGameModule::flushEvents(jsi::Runtime& rt) {
   }
 }
 
+
 // ---- Methods ----
 
+void NativeGameModule::log(jsi::Runtime& rt, std::string message) {
+  logCallback_->call(rt, jsi::String::createFromUtf8(rt, message));
+}
+
 void NativeGameModule::connect(jsi::Runtime& rt) {
-  LudoClient* client = LudoClient::get();
-  if (!client) return;
-  client->connectToServer(rt, jsInvoker_);
-  client->registerSelf(rt);
+  connectToServer(rt);
+}
+
+void NativeGameModule::registerSelf(jsi::Runtime& rt) {
+    sendMessage(rt, "cmd=register");
+}
+
+void NativeGameModule::startGame(jsi::Runtime& rt) {
+    sendMessage(rt, "cmd=start");
+}
+
+void NativeGameModule::selectPawn(jsi::Runtime& rt, int pawn) {
+    sendMessage(rt, "cmd=selectPawn;pawn="+std::to_string(pawn));
 }
 
 void NativeGameModule::rollDice(jsi::Runtime& rt) {
-  LudoClient* client = LudoClient::get();
-  if (!client) return;
-  client->rollDice(rt);
-}
-
-void NativeGameModule::selectPawn(jsi::Runtime& rt, int pawnId) {
-  LudoClient* client = LudoClient::get();
-  if (!client) return;
-  client->selectPawn(rt, pawnId);
+    sendMessage(rt, "cmd=rollDice");
 }
 
 void NativeGameModule::quit(jsi::Runtime& rt) {
-  LudoClient* client = LudoClient::get();
-  if (!client) return;
-  client->quit(rt);
+    sendMessage(rt, "cmd=quit");
+    closeConn(rt);
 }
 
-void NativeGameModule::disconnect(jsi::Runtime& rt) {
-  LudoClient* client = LudoClient::get();
-  if (!client) return;
-  client->closeConn(rt);
+void NativeGameModule::closeConn(jsi::Runtime& rt) {
+    close(clientSocket);
+    clientSocket = -1;
+    token = "";
 }
 
 // ---- Events ----
@@ -132,7 +306,7 @@ void NativeGameModule::emitGameStart(jsi::Runtime& rt) {
   enqueueEvent(std::move(event));
 }
 
-void NativeGameModule::emitPlayerTurn(jsi::Runtime& rt, int playerId) {
+void NativeGameModule::emitPlayerTurn(jsi::Runtime& rt, std::string playerId) {
   Event event;
   event.type = "playerTurn";
   event.properties["playerId"] = playerId;
@@ -171,29 +345,32 @@ void NativeGameModule::emitPlayerSkipped(jsi::Runtime& rt) {
   enqueueEvent(std::move(event));
 }
 
-void NativeGameModule::emitPawnKilled(jsi::Runtime& rt, int killedId) {
+void NativeGameModule::emitPawnKilled(jsi::Runtime& rt, int killerId, int killedId) {
   Event event;
   event.type = "pawnKilled";
   event.properties["killedId"] = killedId;
+  event.properties["killerId"] = killerId;
   enqueueEvent(std::move(event));
 }
 
-void NativeGameModule::emitPawnRevived(jsi::Runtime& rt, int position) {
+void NativeGameModule::emitPawnRevived(jsi::Runtime& rt, int pawn) {
   Event event;
   event.type = "pawnRevived";
-  event.properties["position"] = position;
+  event.properties["pawn"] = pawn;
   enqueueEvent(std::move(event));
 }
 
-void NativeGameModule::emitPawnSaved(jsi::Runtime& rt) {
+void NativeGameModule::emitPawnSaved(jsi::Runtime& rt, int pawn) {
   Event event;
   event.type = "pawnSaved";
+  event.properties["pawn"] = pawn;
   enqueueEvent(std::move(event));
 }
 
-void NativeGameModule::emitPawnMovedToGoalArea(jsi::Runtime& rt, int position) {
+void NativeGameModule::emitPawnMovedToGoalArea(jsi::Runtime& rt, int pawn, int position) {
   Event event;
   event.type = "pawnMovedToGoalArea";
+  event.properties["pawn"] = pawn;
   event.properties["position"] = position;
   enqueueEvent(std::move(event));
 }
@@ -201,12 +378,13 @@ void NativeGameModule::emitPawnMovedToGoalArea(jsi::Runtime& rt, int position) {
 void NativeGameModule::emitPawnMoved(jsi::Runtime& rt, int fromPosition, int toPosition) {
   Event event;
   event.type = "pawnMoved";
+  event.properties["pawn"] = pawn;
   event.properties["fromPosition"] = fromPosition;
   event.properties["toPosition"] = toPosition;
   enqueueEvent(std::move(event));
 }
 
-void NativeGameModule::emitGameOver(jsi::Runtime& rt, int winnerId) {
+void NativeGameModule::emitGameOver(jsi::Runtime& rt, std::string winner) {
   Event event;
   event.type = "gameOver";
   event.properties["winnerId"] = winnerId;

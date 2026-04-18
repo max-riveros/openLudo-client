@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import {
   Button,
   ScrollView,
@@ -8,7 +8,6 @@ import {
   View,
 } from 'react-native';
 import GameModule, { GameEvent } from '../specs/NativeGameModule';
-import LoggerModule from '../specs/NativeLoggerModule';
 import { handle } from './features/events/GameEventHandler';
 import { eventListener } from './features/events/EventListener';
 import * as Events from './features/events/Events';
@@ -20,14 +19,19 @@ function App(): React.JSX.Element {
   const [reversedValue, setReversedValue] = React.useState('');
   const [connected, setConnected] = React.useState(false);
   const [pawnController, setPawnController] = React.useState<PawnController>();
-  const [pawnId, setPawnId] = React.useState(1);
+
+  const [enableDice, setEnableDice] = React.useState(false);
+  const [enableSelect, setEnableSelect] = React.useState(false);
+  const [playerId, setPlayerId] = React.useState(-1);
+  const [selfId, setSelfId] = React.useState(-1);
+  const [pawnId, setPawnId] = React.useState(-1);
 
   GameModule.registerCallback(async (events: Array<GameEvent>) => {
     events.forEach((event: GameEvent) => {
       handle(event);
     });
   });
-  LoggerModule.registerLog(async (message: string) => {
+  GameModule.registerLog(async (message: string) => {
     console.log("App: " + message);
   });
 
@@ -90,7 +94,7 @@ function App(): React.JSX.Element {
   };
 
   const onGameOver = (event: Events.GameOverEvent) => {
-    addText(event.type + ": winner " + event.winnerId);
+    addText(event.type + ": winner " + event.winner);
   };
 
 
@@ -125,7 +129,9 @@ function App(): React.JSX.Element {
     eventListener.subscribe(Events.PawnMovedEvent, onPawnMoved);
     eventListener.subscribe(Events.PawnMovedToGoalAreaEvent, onPawnMovedToGoalArea);
     eventListener.subscribe(Events.GameOverEvent, onGameOver);
-    GameModule.connect();
+    GameModule.connectToServer();
+    GameModule.registerSelf();
+    GameModule.startGame();
 
     /**
     if (pawnController == null) return;
@@ -171,9 +177,9 @@ function App(): React.JSX.Element {
         <Board ref={(ref) => onGetRef(ref)} >
         </Board>
         <Button title="Connect" onPress={onConnect} />
-        <Button title="Dice" onPress={rollDice} />
-        <Text style={styles.title}>Pawn: <TextInput style={styles.text} onChangeText={updateId}></TextInput></Text>
-        <Button title="Select 1" onPress={select} />
+        <Button title="Dice" onPress={rollDice} disabled={!enableDice}/>
+        <Text style={styles.title}>Pawn: <TextInput readOnly={!enableSelect} style={[styles.text, styles.input]} onChangeText={updateId}></TextInput></Text>
+        <Button title="Select 1" onPress={select} disabled={!enableSelect}/> 
         <Button title="Quit" onPress={onQuit} />
         <Button title="Disconnect" onPress={onDisconnect} />
         <ScrollView style={styles.scrollView}>
@@ -208,6 +214,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 'auto',
     marginBottom: '1%',
+  },
+  input: {
+    backgroundColor: "white",
   },
 });
 

@@ -19,22 +19,38 @@ struct Event {
 };
 
 class NativeGameModule : public NativeGameModuleCxxSpec<NativeGameModule> {
+  std::shared_ptr<jsi::Function> logCallback_;
+
   std::shared_ptr<jsi::Function> callback_;
   std::queue<Event> eventQueue_;
   std::mutex queueMutex_;
   std::atomic<bool> flushScheduled_{false};
 
+  int clientSocket = -1;
+  std::string token = "";
+  std::string playerId = "";
+  std::string currentPlayer = "";
+  std::string currentPawn = "";
+  std::string color = "";
+
+  void sendMessage(jsi::Runtime& rt, std::string message);
+  void listenToServer(std::shared_ptr<CallInvoker> jsInvoker);
+  void log(jsi::Runtime& rt, std::string message);
 public:
+  static constexpr in_port_t DEFAULT_PORT = 1221;
   NativeGameModule(std::shared_ptr<CallInvoker> jsInvoker);
 
   // Event Handling
+  void registerLog(jsi::Runtime& rt, jsi::Function callback);
   void registerCallback(jsi::Runtime& rt, jsi::Function callback);
   void enqueueEvent(Event event);
   void scheduleFlush();
   void flushEvents(jsi::Runtime& rt);
 
   // Methods
-  void connect(jsi::Runtime& rt);
+  void connectToServer(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
+  void startGame(jsi::Runtime& rt);
+  void registerSelf(jsi::Runtime& rt);
   void rollDice(jsi::Runtime& rt);
   void selectPawn(jsi::Runtime& rt, int pawnId);
   void disconnect(jsi::Runtime& rt);
@@ -42,18 +58,18 @@ public:
 
   // Events
   void emitGameStart(jsi::Runtime& rt);
-  void emitPlayerTurn(jsi::Runtime& rt,int playerId);
+  void emitPlayerTurn(jsi::Runtime& rt, std::string playerId);
   void emitWaitingForDice(jsi::Runtime& rt);
   void emitDiceRolled(jsi::Runtime& rt, int value);
   void emitWaitingForSelect(jsi::Runtime& rt);
-  void emitSelected(jsi::Runtime& rt,int pawnId);
+  void emitSelected(jsi::Runtime& rt, int pawnId);
   void emitPlayerSkipped(jsi::Runtime& rt);
-  void emitPawnKilled(jsi::Runtime& rt,int killedId);
-  void emitPawnRevived(jsi::Runtime& rt,int position);
-  void emitPawnSaved(jsi::Runtime& rt);
-  void emitPawnMovedToGoalArea(jsi::Runtime& rt,int position);
-  void emitPawnMoved(jsi::Runtime& rt,int fromPosition, int toPosition);
-  void emitGameOver(jsi::Runtime& rt,int winnerId);
+  void emitPawnKilled(jsi::Runtime& rt, int killerId, int killedId);
+  void emitPawnRevived(jsi::Runtime& rt, int pawn);
+  void emitPawnSaved(jsi::Runtime& rt, int pawn);
+  void emitPawnMovedToGoalArea(jsi::Runtime& rt, int pawn, int position);
+  void emitPawnMoved(jsi::Runtime& rt, int pawn, int fromPosition, int toPosition);
+  void emitGameOver(jsi::Runtime& rt, std::string winner);
 };
 
 } // namespace facebook::react
