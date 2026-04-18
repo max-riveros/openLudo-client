@@ -1,6 +1,13 @@
 import {TurboModule, TurboModuleRegistry} from 'react-native';
 
 export type GameEvent =
+	| { type: "playerSetup"; 
+		id: string; 
+		color: string; 
+		startPosition: number; 
+		endPosition: number;
+		pawns: string;
+	  }
 	| { type: "gameStart" }
 	| { type: "playerTurn"; playerId: string }
 	| { type: "waitingForDice" }

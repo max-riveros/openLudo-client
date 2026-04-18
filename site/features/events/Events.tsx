@@ -1,12 +1,23 @@
 export interface Event {
-    readonly type: String;
+  readonly type: String;
+}
+export class PlayerSetupEvent implements Event {
+  readonly type = "playerSetup";
+  
+  constructor(
+    public readonly id: string,
+    public readonly color: string,
+    public readonly startPosition: number,
+    public readonly endPosition: number,
+    public readonly pawns: string,
+  ) {}
 }
 export class GameStartEvent implements Event {
-    readonly type = "gameStart";
+  readonly type = "gameStart";
 }
 export class PlayerTurnEvent implements Event {
-    readonly type = "playerTurn";
-    constructor(public readonly playerId: string) {}
+  readonly type = "playerTurn";
+  constructor(public readonly playerId: string) {}
 }
 export class WaitingForDiceEvent implements Event {
     readonly type = "waitingForDice";
@@ -40,7 +51,6 @@ export class PawnRevivedEvent implements Event {
 
   constructor(
     public readonly pawn: number,
-    public readonly position: number
   ) {}
 }
 export class PawnSavedEvent implements Event {

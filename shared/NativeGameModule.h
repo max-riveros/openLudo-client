@@ -57,6 +57,10 @@ public:
   void quit(jsi::Runtime& rt);
 
   // Events
+  void emitPlayerSetup(
+    jsi::Runtime& rt, std::string id, std::string color, 
+    int startPosition, int endPosition, std::string pawns
+  );
   void emitGameStart(jsi::Runtime& rt);
   void emitPlayerTurn(jsi::Runtime& rt, std::string playerId);
   void emitWaitingForDice(jsi::Runtime& rt);

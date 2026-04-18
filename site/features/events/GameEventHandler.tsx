@@ -4,6 +4,13 @@ import * as Events from './Events';
 
 export function handle(event: GameEvent) {
     switch (event.type) {
+        case "playerSetup":
+            eventListener.emit(new Events.PlayerSetupEvent(
+                event.id, event.color, 
+                event.startPosition, event.endPosition,
+                event.pawns
+            ));
+
         case "gameStart":
             eventListener.emit(new Events.GameStartEvent());
             break;
@@ -45,25 +52,33 @@ export function handle(event: GameEvent) {
         }
 
         case "pawnKilled": {
-            const e = new Events.PawnKilledEvent(event.killerId);
+            const e = new Events.PawnKilledEvent(
+                event.killerId,
+                event.killedId,
+            );
             eventListener.emit(e);
             break;
         }
 
         case "pawnRevived": {
-            const e = new Events.PawnRevivedEvent(event.position);
+            const e = new Events.PawnRevivedEvent(
+                event.pawnId
+            );
             eventListener.emit(e);
             break;
         }
 
         case "pawnSaved": {
-            const e = new Events.PawnSavedEvent();
+            const e = new Events.PawnSavedEvent(
+                event.pawnId,
+            );
             eventListener.emit(e);
             break;
         }
 
         case "pawnMoved": {
             const e = new Events.PawnMovedEvent(
+                event.pawnId,
                 event.fromPosition,
                 event.toPosition
             );
@@ -72,13 +87,16 @@ export function handle(event: GameEvent) {
         }
 
         case "pawnMovedToGoalArea": {
-            const e = new Events.PawnMovedToGoalAreaEvent(event.position);
+            const e = new Events.PawnMovedToGoalAreaEvent(
+                event.pawnId,
+                event.position
+            );
             eventListener.emit(e);
             break;
         }
 
         case "gameOver": {
-            const e = new Events.GameOverEvent(event.winnerId);
+            const e = new Events.GameOverEvent(event.winner);
             eventListener.emit(e);
             break;
         }

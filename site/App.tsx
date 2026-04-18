@@ -35,66 +35,49 @@ function App(): React.JSX.Element {
     console.log("App: " + message);
   });
 
-  const addText = (text: String) => {
-    setReversedValue(prev => prev + "\n" + text);
-  }
-
   const onGameStart = (event: Events.GameStartEvent) => {
-    addText(event.type);
   }
 
   const onPlayerTurn = (event: Events.PlayerTurnEvent) => {
-    addText(event.type + ": " + event.playerId);
   }
 
   const onWaitingForDice = (event: Events.WaitingForDiceEvent) => {
-    addText(event.type);
   }
 
   const onDiceRolled = (event: Events.DiceRolledEvent) => {
-    addText(event.type + ": " + event.value);
     pawnController?.getPawn(pawnId).move(event.value);
   };
 
   const onWaitingForSelect = (event: Events.WaitingForSelectEvent) => {
-    addText(event.type);
   };
 
   const onSelected = (event: Events.SelectedEvent) => {
-    addText(event.type + ": " + event.pawnId);
     setPawnId(event.pawnId);
   };
 
   const onPlayerSkipped = (event: Events.PlayerSkippedEvent) => {
-    addText(event.type);
   };
 
   const onPawnKilled = (event: Events.PawnKilledEvent) => {
-    addText(event.type + ": killer " + event.killerId);
     pawnController?.getPawn(pawnId).kill();
   };
 
   const onPawnRevived = (event: Events.PawnRevivedEvent) => {
-    addText(event.type + ": pawn is at " + event.position);
     pawnController?.getPawn(pawnId).revive();
   };
 
   const onPawnSaved = (event: Events.PawnSavedEvent) => {
-    addText(event.type);
     pawnController?.getPawn(pawnId).moveToGoalArea(5);
   };
 
   const onPawnMoved = (event: Events.PawnMovedEvent) => {
-    addText(event.type + ": from " + event.fromPosition + " to " + event.toPosition);
   };
 
   const onPawnMovedToGoalArea = (event: Events.PawnMovedToGoalAreaEvent) => {
-    addText(event.type + ": to " + event.position);
     pawnController?.getPawn(pawnId).moveToGoalArea(event.position);
   };
 
   const onGameOver = (event: Events.GameOverEvent) => {
-    addText(event.type + ": winner " + event.winner);
   };
 
 
@@ -182,9 +165,6 @@ function App(): React.JSX.Element {
         <Button title="Select 1" onPress={select} disabled={!enableSelect}/> 
         <Button title="Quit" onPress={onQuit} />
         <Button title="Disconnect" onPress={onDisconnect} />
-        <ScrollView style={styles.scrollView}>
-          <Text style={styles.text}>text: {reversedValue}</Text>
-        </ScrollView>
       </View>
       </SafeAreaView>
     </SafeAreaProvider>
