@@ -1,6 +1,7 @@
 import {TurboModule, TurboModuleRegistry} from 'react-native';
 
 export type GameEvent =
+	| { type: "registered"; playerId: string; color: string }
 	| { type: "playerSetup"; 
 		id: string; 
 		color: string; 

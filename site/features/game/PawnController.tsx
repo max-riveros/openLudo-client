@@ -159,18 +159,16 @@ export class PawnController {
     private greenPawnCount: number = 0;
     constructor(readonly board: BoardHandle) { }
 
-    public addPawn(data: PawnData) {
+    public addPawn(data: PawnData, endPosition: number) {
         this.board.addPawn(data, (handle) => {
             let startPos;
             let homePos;
-            let goalEntryLinearPos;
             let goalDirection;
             switch (data.color) {
                 case "red":
                     startPos = { x: 1, y: 6 };
                     homePos = redHomePositions[this.redPawnCount];
                     this.redPawnCount++;
-                    goalEntryLinearPos = 50;
                     goalDirection = { up: 0, left: -1 };
                     break;
 
@@ -178,7 +176,6 @@ export class PawnController {
                     startPos = { x: 8, y: 1 };
                     homePos = blueHomePositions[this.bluePawnCount];
                     this.bluePawnCount++;
-                    goalEntryLinearPos = 11;
                     goalDirection = {up: -1, left: 0}
                     break;
 
@@ -186,7 +183,6 @@ export class PawnController {
                     startPos = { x: 13, y: 8 };
                     homePos = yellowHomePositions[this.yellowPawnCount];
                     this.yellowPawnCount++;
-                    goalEntryLinearPos = 24;
                     goalDirection = {up: 0, left: 1}
                     break;
 
@@ -194,11 +190,10 @@ export class PawnController {
                     startPos = { x: 6, y: 13 };
                     homePos = greenHomePositions[this.greenPawnCount];
                     this.greenPawnCount++;
-                    goalEntryLinearPos = 37;
                     goalDirection = {up: 1, left: 0}
                     break;
             }
-            const pawn = new Pawn(handle, startPos, homePos, goalDirection, goalEntryLinearPos);
+            const pawn = new Pawn(handle, startPos, homePos, goalDirection, endPosition);
             pawn.kill();
             this.pawns[data.id] = pawn;
         });

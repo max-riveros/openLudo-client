@@ -4,12 +4,19 @@ import * as Events from './Events';
 
 export function handle(event: GameEvent) {
     switch (event.type) {
+        case "registered":
+            eventListener.emit(new Events.RegisteredEvent(
+                event.playerId, event.color,
+            ));
+            break;
+
         case "playerSetup":
             eventListener.emit(new Events.PlayerSetupEvent(
                 event.id, event.color, 
                 event.startPosition, event.endPosition,
                 event.pawns
             ));
+            break;
 
         case "gameStart":
             eventListener.emit(new Events.GameStartEvent());

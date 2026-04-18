@@ -57,6 +57,9 @@ public:
   void quit(jsi::Runtime& rt);
 
   // Events
+  void emitRegistered(
+    jsi::Runtime& rt, std::string playerId, std::string color, 
+  );
   void emitPlayerSetup(
     jsi::Runtime& rt, std::string id, std::string color, 
     int startPosition, int endPosition, std::string pawns

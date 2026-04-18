@@ -49,7 +49,6 @@ void handleLine(jsi::Runtime& rt, const std::string& line) {
         color = map["color"];
     }
     if (event == "playerSetup") {
-        // keys: id, color, startPosition, endPosition, pawns (delim ',')
         std::string id = map["id"];
         std::string color = map["color"];
         int startPosition = map["startPosition"];
@@ -305,6 +304,16 @@ void NativeGameModule::closeConn(jsi::Runtime& rt) {
 
 // ---- Events ----
 
+void NativeGameModule::emitRegistered(
+  jsi::Runtime& rt, std::string playerId, std::string color
+) {
+  Event event;
+  event.type = "registered";
+  event.properties["playerId"] = playerId;
+  event.properties["color"] = color;
+  enqueueEvent(std::move(event));
+}
+
 void NativeGameModule::emitPlayerSetup(
   jsi::Runtime& rt, std::string id, std::string color, 
   int startPosition, int endPosition, std::string pawns
@@ -316,6 +325,7 @@ void NativeGameModule::emitPlayerSetup(
   event.properties["startPosition"] = startPosition;
   event.properties["endPosition"] = endPosition;
   event.properties["pawns"] = pawns;
+  enqueueEvent(std::move(event));
 }
 
 void NativeGameModule::emitGameStart(jsi::Runtime& rt) {

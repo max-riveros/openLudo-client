@@ -1,6 +1,14 @@
 export interface Event {
   readonly type: String;
 }
+export class RegisteredEvent implements Event {
+  readonly type = "registered";
+
+  constructor(
+    public readonly playerId: string,
+    public readonly color: string,
+  ) {}
+}
 export class PlayerSetupEvent implements Event {
   readonly type = "playerSetup";
   

@@ -14,6 +14,7 @@ import * as Events from './features/events/Events';
 import { Board, BoardHandle } from './components/game/Board';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { PawnController } from './features/game/PawnController';
+import { Color } from './components/game/Pawn';
 
 function App(): React.JSX.Element {
   const [connected, setConnected] = React.useState(false);
@@ -34,11 +35,25 @@ function App(): React.JSX.Element {
     console.log("App: " + message);
   });
 
+  const onRegistered = (event: Events.RegisteredEvent) => {
+    setSelfId(event.playerId);
+  }
+
   const onPlayerSetup = (event: Events.PlayerSetupEvent) => {
+    let color: Color;
+    if (event.color == "red") color = "red";
+    if (event.color == "blue") color = "blue";
+    if (event.color == "yellow") color = "yellow";
+    if (event.color == "green") color = "green";
     
+    event.pawns.split(',').forEach((pawn) => {
+      let id: number = parseInt(pawn);
+      pawnController?.addPawn({id: id, color: color}, event.endPosition)
+    });
   }
 
   const onGameStart = (event: Events.GameStartEvent) => {
+    console.log("Game started!");
   }
 
   const onPlayerTurn = (event: Events.PlayerTurnEvent) => {
@@ -118,6 +133,7 @@ function App(): React.JSX.Element {
     if ( connected ) return;
 
     setConnected(true);
+    eventListener.subscribe(Events.RegisteredEvent, onRegistered);
     eventListener.subscribe(Events.PlayerSetupEvent, onPlayerSetup);
     eventListener.subscribe(Events.GameStartEvent, onGameStart);
     eventListener.subscribe(Events.PlayerTurnEvent, onPlayerTurn);
@@ -132,29 +148,10 @@ function App(): React.JSX.Element {
     eventListener.subscribe(Events.PawnMovedEvent, onPawnMoved);
     eventListener.subscribe(Events.PawnMovedToGoalAreaEvent, onPawnMovedToGoalArea);
     eventListener.subscribe(Events.GameOverEvent, onGameOver);
+
     GameModule.connectToServer();
     GameModule.registerSelf();
     GameModule.startGame();
-
-    /**
-    if (pawnController == null) return;
-    pawnController?.addPawn({id: 1, color: "red"})
-    pawnController?.addPawn({id: 2, color: "red"})
-    pawnController?.addPawn({id: 3, color: "red"})
-    pawnController?.addPawn({id: 4, color: "red"})
-    pawnController?.addPawn({id: 5, color: "blue"})
-    pawnController?.addPawn({id: 6, color: "blue"})
-    pawnController?.addPawn({id: 7, color: "blue"})
-    pawnController?.addPawn({id: 8, color: "blue"})
-    pawnController?.addPawn({id: 9, color: "yellow"})
-    pawnController?.addPawn({id: 10, color: "yellow"})
-    pawnController?.addPawn({id: 11, color: "yellow"})
-    pawnController?.addPawn({id: 12, color: "yellow"})
-    pawnController?.addPawn({id: 13, color: "green"})
-    pawnController?.addPawn({id: 14, color: "green"})
-    pawnController?.addPawn({id: 15, color: "green"})
-    pawnController?.addPawn({id: 16, color: "green"})
-    **/
   };
   const rollDice = () => {
     GameModule.rollDice();
