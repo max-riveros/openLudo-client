@@ -50,9 +50,7 @@ class Pawn {
     public async moveToGoalArea(position: number) {
         if (this.isDead) return;
         if (!this.isAtGoalArea) {
-            while (this.linearPos != this.goalEntryLinearPos) {
-                await this.moveOnce(true);
-            }
+            await this.moveToLinearPosition(this.goalEntryLinearPos);
             await this.handle.move(this.goalDirection.up, this.goalDirection.left, true);
             this.linearPos = 0;
             this.isAtGoalArea = true;
@@ -60,6 +58,13 @@ class Pawn {
         while (this.linearPos < position) {
             this.linearPos++;
             await this.handle.move(this.goalDirection.up, this.goalDirection.left, true);
+        }
+    }
+
+    public async moveToLinearPosition(position: number) {
+        if (this.isDead || position >= this.boardLength || position < 0) return;
+        while (this.linearPos != position) {
+            await this.moveOnce(false);
         }
     }
 

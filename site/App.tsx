@@ -16,14 +16,13 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { PawnController } from './features/game/PawnController';
 
 function App(): React.JSX.Element {
-  const [reversedValue, setReversedValue] = React.useState('');
   const [connected, setConnected] = React.useState(false);
   const [pawnController, setPawnController] = React.useState<PawnController>();
 
   const [enableDice, setEnableDice] = React.useState(false);
   const [enableSelect, setEnableSelect] = React.useState(false);
-  const [playerId, setPlayerId] = React.useState(-1);
-  const [selfId, setSelfId] = React.useState(-1);
+  const [playerId, setPlayerId] = React.useState("");
+  const [selfId, setSelfId] = React.useState("");
   const [pawnId, setPawnId] = React.useState(-1);
 
   GameModule.registerCallback(async (events: Array<GameEvent>) => {
@@ -35,49 +34,69 @@ function App(): React.JSX.Element {
     console.log("App: " + message);
   });
 
+  const onPlayerSetup = (event: Events.PlayerSetupEvent) => {
+    
+  }
+
   const onGameStart = (event: Events.GameStartEvent) => {
   }
 
   const onPlayerTurn = (event: Events.PlayerTurnEvent) => {
+    setPlayerId(event.playerId);
   }
 
   const onWaitingForDice = (event: Events.WaitingForDiceEvent) => {
+    if (selfId === playerId) {
+      setEnableDice(true);
+    }
   }
 
   const onDiceRolled = (event: Events.DiceRolledEvent) => {
+    setEnableDice(false);
     pawnController?.getPawn(pawnId).move(event.value);
   };
 
   const onWaitingForSelect = (event: Events.WaitingForSelectEvent) => {
+    if (selfId === playerId) {
+      setEnableSelect(true);
+    }
   };
 
   const onSelected = (event: Events.SelectedEvent) => {
-    setPawnId(event.pawnId);
+    if (selfId === playerId) {
+      setEnableSelect(false);
+    }
+    console.log("Selected Pawn " + event.pawnId);
   };
 
   const onPlayerSkipped = (event: Events.PlayerSkippedEvent) => {
+    console.log("Skipped player");
   };
 
   const onPawnKilled = (event: Events.PawnKilledEvent) => {
-    pawnController?.getPawn(pawnId).kill();
+    pawnController?.getPawn(event.killedId).kill();
   };
 
   const onPawnRevived = (event: Events.PawnRevivedEvent) => {
-    pawnController?.getPawn(pawnId).revive();
+    pawnController?.getPawn(event.pawn).revive();
   };
 
   const onPawnSaved = (event: Events.PawnSavedEvent) => {
-    pawnController?.getPawn(pawnId).moveToGoalArea(5);
+    pawnController?.getPawn(event.pawn).moveToGoalArea(5);
   };
 
   const onPawnMoved = (event: Events.PawnMovedEvent) => {
+    pawnController?.getPawn(event.pawn).moveToLinearPosition(event.toPosition);
   };
 
   const onPawnMovedToGoalArea = (event: Events.PawnMovedToGoalAreaEvent) => {
-    pawnController?.getPawn(pawnId).moveToGoalArea(event.position);
+    pawnController?.getPawn(event.pawn).moveToGoalArea(event.position);
   };
 
   const onGameOver = (event: Events.GameOverEvent) => {
+    setEnableDice(false);
+    setEnableSelect(false);
+    console.log(event.winner + " won!");
   };
 
 
@@ -99,6 +118,7 @@ function App(): React.JSX.Element {
     if ( connected ) return;
 
     setConnected(true);
+    eventListener.subscribe(Events.PlayerSetupEvent, onPlayerSetup);
     eventListener.subscribe(Events.GameStartEvent, onGameStart);
     eventListener.subscribe(Events.PlayerTurnEvent, onPlayerTurn);
     eventListener.subscribe(Events.WaitingForDiceEvent, onWaitingForDice);

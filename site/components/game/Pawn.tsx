@@ -15,7 +15,9 @@ export type Color = "red" | "blue" | "green" | "yellow"
 
 export type PawnData = {
     id: number,
-    color: Color
+    color: Color,
+    startPosition?: number,
+    endPosition?: number,
 }
 export type PawnProps = {
     initialFieldWidth: number;
