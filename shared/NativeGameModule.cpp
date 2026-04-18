@@ -1,5 +1,4 @@
 #include "NativeGameModule.h"
-#include <iostream>
 
 namespace facebook::react {
 
@@ -38,7 +37,7 @@ std::map<std::string, std::string> parseLine(const std::string& input) {
     return result;
 }
 
-void handleLine(jsi::Runtime& rt, const std::string& line) {
+void NativeGameModule::handleLine(jsi::Runtime& rt, const std::string& line) {
         // TODO: send info to js
     auto map = parseLine(line);
     if (!map.contains("event")) return;
@@ -51,8 +50,8 @@ void handleLine(jsi::Runtime& rt, const std::string& line) {
     if (event == "playerSetup") {
         std::string id = map["id"];
         std::string color = map["color"];
-        int startPosition = map["startPosition"];
-        int endPosition = map["endPosition"];
+        int startPosition = std::stoi(map["startPosition"]);
+        int endPosition = std::stoi(map["endPosition"]);
         std::string pawns = map["pawns"];
         emitPlayerSetup(rt, id, color, startPosition, endPosition, pawns);
         return;
@@ -90,36 +89,40 @@ void handleLine(jsi::Runtime& rt, const std::string& line) {
     if (event == "pawnKilled") {
         int killer = std::stoi(map["killer"]);
         int killed = std::stoi(map["killed"]);
-        emitPawnKilled(rt, killer, killed)
+        emitPawnKilled(rt, killer, killed);
         return;
     }
     if (event == "pawnRevived") {
         int pawn = std::stoi(map["pawn"]);
-        emitPawnRevived(rt);
+        emitPawnRevived(rt, pawn);
         return;
     }
     if (event == "pawnSaved") {
         int pawn = std::stoi(map["pawn"]);
-        emitPawnSaved(rt);
+        emitPawnSaved(rt, pawn);
         return;
     }
     if (event == "pawnMovedToGoalArea") {
         int pawn = std::stoi(map["pawn"]);
         int position = std::stoi(map["position"]);
-        emitPawnMovedToGoalArea(rt, position);
+        emitPawnMovedToGoalArea(rt, pawn, position);
         return;
     }
     if (event == "pawnMoved") {
         int pawn = std::stoi(map["pawn"]);
         int from = std::stoi(map["from"]);
         int to = std::stoi(map["to"]);
-        emitPawnMoved(rt, from, to);
+        emitPawnMoved(rt, pawn, from, to);
         return;
     }
     if (event == "gameOver") {
         emitGameOver(rt, map["player"]);
         return;
     }
+}
+
+void NativeGameModule::log(jsi::Runtime& rt, std::string message) {
+  logCallback_->call(rt, jsi::String::createFromUtf8(rt, message));
 }
 
 
@@ -132,46 +135,57 @@ void NativeGameModule::sendMessage(jsi::Runtime& rt, std::string message) {
     send(clientSocket, message.c_str(), message.length(), 0);
 }
 
-void NativeGameModule::listenToServer() {
+void NativeGameModule::listen_() {
     char buffer[1024];
     ssize_t bytes = 1;
-    while (clientSocket != -1 && bytes > 0) {
+    while (clientSocket != -1) {
         bytes = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 
         std::string message;
         if (bytes > 0) {
             buffer[bytes] = '\0';
-            message = "";
             for (const std::string& line : parseRecv(std::string(buffer))) {
-                message += "Message from Server: " + line + "\n";
-                handleLine(line);
+                std::string lineCopy = std::string(line);
+                jsInvoker_->invokeAsync([this, lineCopy](jsi::Runtime& rt) {
+                  log(rt, "Server: " + lineCopy);
+                  handleLine(rt, lineCopy);
+                });
             }
+            continue;
         } else if (bytes == 0) {
             message = "Server disconnected.";
         } else {
             message = "There was an error trying to communicate with the server: " + std::to_string(errno);
         }
         jsInvoker_->invokeAsync([this, message](jsi::Runtime& rt) {
-            logger->log(rt, message);
+            log(rt, message);
         });
+        return;
     }
+    close_();
 }
 
-void NativeGameModule::connectToServer(jsi::Runtime& rt) {
+void NativeGameModule::close_() {
+    close(clientSocket);
+    clientSocket = -1;
+    token = "";
+}
+
+void NativeGameModule::connect_(jsi::Runtime& rt) {
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in serverAddress{};
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(DEFAULT_PORT);
     inet_pton(AF_INET, "192.168.0.49", &serverAddress.sin_addr);
     if (connect(clientSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
-        log(rt, "Failed to connect to Server!");
+        log(rt, "Failed to connect to Server! (" + std::to_string(errno) + ")");
         clientSocket = -1;
         return;
     }
     log(rt, "Address " + std::to_string(serverAddress.sin_addr.s_addr));
     log(rt, "Connected with socket " + std::to_string(clientSocket));
 
-    std::thread thread = std::thread(&NativeGameModule::listenToServer, this);
+    std::thread thread = std::thread(&NativeGameModule::listen_, this);
     thread.detach();
 }
 
@@ -267,12 +281,8 @@ void NativeGameModule::flushEvents(jsi::Runtime& rt) {
 
 // ---- Methods ----
 
-void NativeGameModule::log(jsi::Runtime& rt, std::string message) {
-  logCallback_->call(rt, jsi::String::createFromUtf8(rt, message));
-}
-
-void NativeGameModule::connect(jsi::Runtime& rt) {
-  connectToServer(rt);
+void NativeGameModule::connectToServer(jsi::Runtime& rt) {
+    connect_(rt);
 }
 
 void NativeGameModule::registerSelf(jsi::Runtime& rt) {
@@ -293,13 +303,10 @@ void NativeGameModule::rollDice(jsi::Runtime& rt) {
 
 void NativeGameModule::quit(jsi::Runtime& rt) {
     sendMessage(rt, "cmd=quit");
-    closeConn(rt);
 }
 
-void NativeGameModule::closeConn(jsi::Runtime& rt) {
-    close(clientSocket);
-    clientSocket = -1;
-    token = "";
+void NativeGameModule::disconnect(jsi::Runtime& rt) {
+    close_();
 }
 
 // ---- Events ----
@@ -403,7 +410,7 @@ void NativeGameModule::emitPawnMovedToGoalArea(jsi::Runtime& rt, int pawn, int p
   enqueueEvent(std::move(event));
 }
 
-void NativeGameModule::emitPawnMoved(jsi::Runtime& rt, int fromPosition, int toPosition) {
+void NativeGameModule::emitPawnMoved(jsi::Runtime& rt, int pawn, int fromPosition, int toPosition) {
   Event event;
   event.type = "pawnMoved";
   event.properties["pawn"] = pawn;
@@ -415,7 +422,7 @@ void NativeGameModule::emitPawnMoved(jsi::Runtime& rt, int fromPosition, int toP
 void NativeGameModule::emitGameOver(jsi::Runtime& rt, std::string winner) {
   Event event;
   event.type = "gameOver";
-  event.properties["winnerId"] = winnerId;
+  event.properties["winner"] = winner;
   enqueueEvent(std::move(event));
 }
 

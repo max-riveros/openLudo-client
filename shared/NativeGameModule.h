@@ -3,12 +3,16 @@
 #include <ClientSpecsJSI.h>
 #include <ReactCommon/CallInvoker.h>
 
-#include "LudoClient.h"
-
+#include <iostream>
 #include <memory>
 #include <queue>
 #include <mutex>
 #include <functional>
+#include <thread>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 namespace facebook::react {
 
@@ -33,8 +37,11 @@ class NativeGameModule : public NativeGameModuleCxxSpec<NativeGameModule> {
   std::string currentPawn = "";
   std::string color = "";
 
+  void handleLine(jsi::Runtime& rt, const std::string& line);
   void sendMessage(jsi::Runtime& rt, std::string message);
-  void listenToServer(std::shared_ptr<CallInvoker> jsInvoker);
+  void close_();
+  void listen_();
+  void connect_(jsi::Runtime& rt);
   void log(jsi::Runtime& rt, std::string message);
 public:
   static constexpr in_port_t DEFAULT_PORT = 1221;
@@ -48,7 +55,7 @@ public:
   void flushEvents(jsi::Runtime& rt);
 
   // Methods
-  void connectToServer(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
+  void connectToServer(jsi::Runtime& rt);
   void startGame(jsi::Runtime& rt);
   void registerSelf(jsi::Runtime& rt);
   void rollDice(jsi::Runtime& rt);
@@ -58,7 +65,7 @@ public:
 
   // Events
   void emitRegistered(
-    jsi::Runtime& rt, std::string playerId, std::string color, 
+    jsi::Runtime& rt, std::string playerId, std::string color 
   );
   void emitPlayerSetup(
     jsi::Runtime& rt, std::string id, std::string color, 
