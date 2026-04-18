@@ -41,7 +41,7 @@ export function handle(event: GameEvent) {
         }
 
         case "waitingForSelect": {
-            const e = new Events.WaitingForSelectEvent();
+            const e = new Events.WaitingForSelectEvent(event.pawns);
             eventListener.emit(e);
             break;
         }
@@ -69,7 +69,7 @@ export function handle(event: GameEvent) {
 
         case "pawnRevived": {
             const e = new Events.PawnRevivedEvent(
-                event.pawnId
+                event.pawn
             );
             eventListener.emit(e);
             break;
@@ -77,7 +77,7 @@ export function handle(event: GameEvent) {
 
         case "pawnSaved": {
             const e = new Events.PawnSavedEvent(
-                event.pawnId,
+                event.pawn,
             );
             eventListener.emit(e);
             break;
@@ -85,7 +85,7 @@ export function handle(event: GameEvent) {
 
         case "pawnMoved": {
             const e = new Events.PawnMovedEvent(
-                event.pawnId,
+                event.pawn,
                 event.fromPosition,
                 event.toPosition
             );
@@ -95,7 +95,7 @@ export function handle(event: GameEvent) {
 
         case "pawnMovedToGoalArea": {
             const e = new Events.PawnMovedToGoalAreaEvent(
-                event.pawnId,
+                event.pawn,
                 event.position
             );
             eventListener.emit(e);

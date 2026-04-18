@@ -43,9 +43,8 @@ void NativeGameModule::handleLine(jsi::Runtime& rt, const std::string& line) {
     if (!map.contains("event")) return;
     std::string event = map["event"];
     if (event == "registered") {
-        token = map["token"];
-        playerId = map["playerId"];
-        color = map["color"];
+        *token = map["token"];
+        emitRegistered(rt, map["playerId"], map["color"]);
     }
     if (event == "playerSetup") {
         std::string id = map["id"];
@@ -74,7 +73,7 @@ void NativeGameModule::handleLine(jsi::Runtime& rt, const std::string& line) {
         return;
     }
     if (event == "waitingForSelect") {
-        emitWaitingForSelect(rt);
+        emitWaitingForSelect(rt, map["pawns"]);
         return;
     }
     if (event == "selected") {
@@ -131,7 +130,7 @@ void NativeGameModule::log(jsi::Runtime& rt, std::string message) {
 void NativeGameModule::sendMessage(jsi::Runtime& rt, std::string message) {
     if (clientSocket < 0) return;
 
-    if (token.length() != 0) message = message + ";token=" + token;
+    if ((*token).length() != 0) message = message + ";token=" + *token;
     send(clientSocket, message.c_str(), message.length(), 0);
 }
 
@@ -168,7 +167,7 @@ void NativeGameModule::listen_() {
 void NativeGameModule::close_() {
     close(clientSocket);
     clientSocket = -1;
-    token = "";
+    *token = "";
 }
 
 void NativeGameModule::connect_(jsi::Runtime& rt) {
@@ -361,9 +360,10 @@ void NativeGameModule::emitDiceRolled(jsi::Runtime& rt, int value) {
   enqueueEvent(std::move(event));
 }
 
-void NativeGameModule::emitWaitingForSelect(jsi::Runtime& rt) {
+void NativeGameModule::emitWaitingForSelect(jsi::Runtime& rt, std::string pawns) {
   Event event;
   event.type = "waitingForSelect";
+  event.properties["pawns"] = pawns;
   enqueueEvent(std::move(event));
 }  
 

@@ -31,11 +31,7 @@ class NativeGameModule : public NativeGameModuleCxxSpec<NativeGameModule> {
   std::atomic<bool> flushScheduled_{false};
 
   int clientSocket = -1;
-  std::string token = "";
-  std::string playerId = "";
-  std::string currentPlayer = "";
-  std::string currentPawn = "";
-  std::string color = "";
+  std::string* token = new std::string("");
 
   void handleLine(jsi::Runtime& rt, const std::string& line);
   void sendMessage(jsi::Runtime& rt, std::string message);
@@ -75,7 +71,7 @@ public:
   void emitPlayerTurn(jsi::Runtime& rt, std::string playerId);
   void emitWaitingForDice(jsi::Runtime& rt);
   void emitDiceRolled(jsi::Runtime& rt, int value);
-  void emitWaitingForSelect(jsi::Runtime& rt);
+  void emitWaitingForSelect(jsi::Runtime& rt, std::string pawns);
   void emitSelected(jsi::Runtime& rt, int pawnId);
   void emitPlayerSkipped(jsi::Runtime& rt);
   void emitPawnKilled(jsi::Runtime& rt, int killerId, int killedId);

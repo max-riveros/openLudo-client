@@ -1,10 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Button,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import GameModule, { GameEvent } from '../specs/NativeGameModule';
@@ -17,14 +15,20 @@ import { PawnController } from './features/game/PawnController';
 import { Color } from './components/game/Pawn';
 
 function App(): React.JSX.Element {
-  const [connected, setConnected] = React.useState(false);
+  const [resetKey, setResetKey] = React.useState(0);
   const [pawnController, setPawnController] = React.useState<PawnController>();
 
+  const [connected, setConnected] = React.useState(false);
+  const [registered, setRegistered] = React.useState(false);
+  const [started, setStarted] = React.useState(false);
   const [enableDice, setEnableDice] = React.useState(false);
-  const [enableSelect, setEnableSelect] = React.useState(false);
-  const [playerId, setPlayerId] = React.useState("");
-  const [selfId, setSelfId] = React.useState("");
-  const [pawnId, setPawnId] = React.useState(-1);
+  const [enableSelect, setEnableSelect] = React.useState<Array<boolean>>([false, false, false, false]);
+
+  const dice = React.useRef(0);
+  const playerId = React.useRef("");
+  const selfId = React.useRef("");
+  const pawnId = React.useRef(-1);
+  const pawns = React.useRef<Array<number>>([]);
 
   GameModule.registerCallback(async (events: Array<GameEvent>) => {
     events.forEach((event: GameEvent) => {
@@ -36,51 +40,65 @@ function App(): React.JSX.Element {
   });
 
   const onRegistered = (event: Events.RegisteredEvent) => {
-    setSelfId(event.playerId);
+    selfId.current = event.playerId;
+    setRegistered(true);
   }
 
   const onPlayerSetup = (event: Events.PlayerSetupEvent) => {
     let color: Color;
-    if (event.color == "red") color = "red";
-    if (event.color == "blue") color = "blue";
-    if (event.color == "yellow") color = "yellow";
-    if (event.color == "green") color = "green";
+    if (event.color == "0") color = "red";
+    if (event.color == "1") color = "blue";
+    if (event.color == "2") color = "yellow";
+    if (event.color == "3") color = "green";
     
+    let newPawns: Array<number> = [];
     event.pawns.split(',').forEach((pawn) => {
       let id: number = parseInt(pawn);
-      pawnController?.addPawn({id: id, color: color}, event.endPosition)
+      if (event.id == selfId.current) {
+        newPawns.push(id);
+        console.log("Pushing " + id);
+      }
+      pawnController?.addPawn({id: id, color: color}, event.id, event.endPosition)
     });
+    pawns.current = newPawns;
   }
 
   const onGameStart = (event: Events.GameStartEvent) => {
-    console.log("Game started!");
+    setStarted(true);
   }
 
   const onPlayerTurn = (event: Events.PlayerTurnEvent) => {
-    setPlayerId(event.playerId);
+    playerId.current = event.playerId;
   }
 
   const onWaitingForDice = (event: Events.WaitingForDiceEvent) => {
-    if (selfId === playerId) {
+    if (selfId.current === playerId.current) {
       setEnableDice(true);
     }
   }
 
   const onDiceRolled = (event: Events.DiceRolledEvent) => {
     setEnableDice(false);
-    pawnController?.getPawn(pawnId).move(event.value);
+    dice.current = event.value;
   };
 
   const onWaitingForSelect = (event: Events.WaitingForSelectEvent) => {
-    if (selfId === playerId) {
-      setEnableSelect(true);
+    if (selfId.current === playerId.current) {
+      let newEnableSelect: Array<boolean> = [false, false, false, false];
+      event.pawns.split(',').forEach((pawn) => {
+        let index = pawns.current.indexOf(parseInt(pawn));
+        console.log("Enabling pawn " + pawn + " at " + index);
+        newEnableSelect[index] = true;
+      });
+      setEnableSelect(newEnableSelect);
     }
   };
 
   const onSelected = (event: Events.SelectedEvent) => {
-    if (selfId === playerId) {
-      setEnableSelect(false);
+    if (selfId.current === playerId.current) {
+      setEnableSelect([false, false, false, false]);
     }
+    pawnId.current = event.pawnId;
     console.log("Selected Pawn " + event.pawnId);
   };
 
@@ -93,6 +111,11 @@ function App(): React.JSX.Element {
   };
 
   const onPawnRevived = (event: Events.PawnRevivedEvent) => {
+    console.log("Pawns: " + pawnController?.getPawns().length);
+    pawnController?.getPawns().forEach((pawn, index) => {
+      console.log(index);
+    });
+    console.log("Revived " + event.pawn);
     pawnController?.getPawn(event.pawn).revive();
   };
 
@@ -110,16 +133,21 @@ function App(): React.JSX.Element {
 
   const onGameOver = (event: Events.GameOverEvent) => {
     setEnableDice(false);
-    setEnableSelect(false);
+    setEnableSelect([false, false, false, false]);
     console.log(event.winner + " won!");
   };
 
+
+  const onStart = () => {
+    GameModule.startGame();
+  }
 
   const onDisconnect = () => {
     if (!connected) return;
 
     setConnected(false);
     GameModule.disconnect();
+    reset();
   }
 
   const onQuit = () => {
@@ -127,6 +155,24 @@ function App(): React.JSX.Element {
 
     setConnected(false);
     GameModule.quit();
+    reset();
+  }
+
+  const reset = () => {
+    setConnected(false);
+    setRegistered(false);
+    setStarted(false);
+    setPawnController(undefined);
+
+    setEnableDice(false);
+    setEnableSelect([false, false, false, false]);
+    dice.current = 0;
+    playerId.current = "";
+    selfId.current = "";
+    pawnId.current = -1;
+    pawns.current = [];
+
+    setResetKey(resetKey+1);
   }
 
   const onConnect = () => {
@@ -151,16 +197,21 @@ function App(): React.JSX.Element {
 
     GameModule.connectToServer();
     GameModule.registerSelf();
-    GameModule.startGame();
   };
   const rollDice = () => {
     GameModule.rollDice();
   };
-  const updateId = (id: string) => {
-    setPawnId(parseInt(id));
-  }
-  const select = () => {
-    GameModule.selectPawn(pawnId);
+  const select1 = () => {
+    GameModule.selectPawn(pawns.current[0]);
+  };
+  const select2 = () => {
+    GameModule.selectPawn(pawns.current[1]);
+  };
+  const select3 = () => {
+    GameModule.selectPawn(pawns.current[2]);
+  };
+  const select4 = () => {
+    GameModule.selectPawn(pawns.current[3]);
   };
   const onGetRef = (ref: BoardHandle | null) => {
     if (ref == null || pawnController != undefined) return;
@@ -168,20 +219,31 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider key={resetKey}>
       <SafeAreaView style={styles.container}>
       <View>
-        <Text style={[styles.title, styles.text]}>
-          Welcome to C++ Turbo Native Module Example
-        </Text>
-        <Board ref={(ref) => onGetRef(ref)} >
-        </Board>
-        <Button title="Connect" onPress={onConnect} />
-        <Button title="Dice" onPress={rollDice} disabled={!enableDice}/>
-        <Text style={styles.title}>Pawn: <TextInput readOnly={!enableSelect} style={[styles.text, styles.input]} onChangeText={updateId}></TextInput></Text>
-        <Button title="Select 1" onPress={select} disabled={!enableSelect}/> 
-        <Button title="Quit" onPress={onQuit} />
-        <Button title="Disconnect" onPress={onDisconnect} />
+        <View style={styles.header}>
+          <Text style={[styles.title, styles.text]}>
+            Welcome to C++ Turbo Native Module Example
+          </Text>
+        </View>
+        <View style={styles.board}>
+          <Board ref={(ref) => onGetRef(ref)} >
+          </Board>
+        </View>
+        <View style={styles.controls}>
+          <Button title="Connect" onPress={onConnect} disabled={connected} />
+          <Button title="Start" onPress={onStart} disabled={!registered || started} />
+          <View style={styles.buttons}>
+            <Button title="Select 1" onPress={select1} disabled={!enableSelect[0]}/> 
+            <Button title="Select 2" onPress={select2} disabled={!enableSelect[1]}/> 
+            <Button title="Select 3" onPress={select3} disabled={!enableSelect[2]}/> 
+            <Button title="Select 4" onPress={select4} disabled={!enableSelect[3]}/> 
+          </View>
+          <Button title="Dice" onPress={rollDice} disabled={!enableDice}/>
+          <Button title="Quit" onPress={onQuit} disabled={!started} />
+          <Button title="Disconnect" onPress={onDisconnect} disabled={!connected} />
+        </View>
       </View>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -191,10 +253,28 @@ function App(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  header: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  board: {
+    flex: 2,
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  controls: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
+  },
   title: {
+    width: '100%',
     fontSize: 22,
     marginBottom: 20,
     color: 'white',
@@ -213,7 +293,8 @@ const styles = StyleSheet.create({
     marginBottom: '1%',
   },
   input: {
-    backgroundColor: "white",
+    backgroundColor: "black",
+    width: '80%',
   },
 });
 

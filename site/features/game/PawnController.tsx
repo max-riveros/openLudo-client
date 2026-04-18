@@ -8,6 +8,7 @@ class Pawn {
     private isAtGoalArea: boolean = false;
     private isDead: boolean = true;
     constructor(
+        readonly player: string,
         readonly handle: PawnHandle, 
         readonly startPos: { x: number, y: number },
         readonly homePos: { x: number, y: number },
@@ -159,7 +160,7 @@ export class PawnController {
     private greenPawnCount: number = 0;
     constructor(readonly board: BoardHandle) { }
 
-    public addPawn(data: PawnData, endPosition: number) {
+    public addPawn(data: PawnData, player: string, endPosition: number) {
         this.board.addPawn(data, (handle) => {
             let startPos;
             let homePos;
@@ -193,12 +194,15 @@ export class PawnController {
                     goalDirection = {up: 1, left: 0}
                     break;
             }
-            const pawn = new Pawn(handle, startPos, homePos, goalDirection, endPosition);
+            const pawn = new Pawn(player, handle, startPos, homePos, goalDirection, endPosition);
             pawn.kill();
             this.pawns[data.id] = pawn;
         });
     }
     public getPawn(id: number) {
         return this.pawns[id];
+    }
+    public getPawns() {
+        return this.pawns;
     }
 }

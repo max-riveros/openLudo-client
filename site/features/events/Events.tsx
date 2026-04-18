@@ -37,6 +37,8 @@ export class DiceRolledEvent implements Event {
 }
 export class WaitingForSelectEvent implements Event {
     readonly type = "waitingForSelect";
+
+    constructor(public readonly pawns: string) {}
 }
 export class SelectedEvent implements Event {
   readonly type = "selected";

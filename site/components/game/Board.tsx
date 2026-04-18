@@ -1,5 +1,5 @@
-import React, { createContext, forwardRef, ReactElement, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
-import { StyleSheet, ImageBackground, View, Text, Systrace } from 'react-native';
+import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
+import { StyleSheet, ImageBackground, View } from 'react-native';
 import { Pawn, PawnData, PawnHandle, PawnProps } from './Pawn';
 
 export type BoardProps = any;
